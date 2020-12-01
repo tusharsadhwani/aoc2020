@@ -65,19 +65,38 @@ def exists_binary_search(
     return exists_binary_search(array, value, start, mid-1)
 
 
-def main() -> None:
-    """Main function"""
+def part1() -> None:
+    """Solution for part 1"""
     with open('input.txt') as infile:
         nums = [int(line) for line in infile.readlines()]
 
     nums.sort()
 
     for num in nums:
-        complement = exists_binary_search(nums, 2020-num)
-        if complement:
-            print(num * (2020-num))
-            break
+        complement = 2020-num
+        exists = exists_binary_search(nums, complement)
+        if exists:
+            print(num * complement)
+            return
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    with open('input.txt') as infile:
+        nums = [int(line) for line in infile.readlines()]
+
+    nums.sort()
+
+    for i, num1 in enumerate(nums):
+        for num2 in nums[i+1:]:
+            complement = 2020 - (num1+num2)
+
+            exists = exists_binary_search(nums, complement)
+            if exists:
+                print(num1 * num2 * complement)
+                return
 
 
 if __name__ == "__main__":
-    main()
+    part1()
+    part2()
