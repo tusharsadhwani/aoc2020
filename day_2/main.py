@@ -19,6 +19,7 @@ For example, suppose you have the following list:
 1-3 a: abcde
 1-3 b: cdefg
 2-9 c: ccccccccc
+
 Each line gives the password policy and then the password. The password
 policy indicates the lowest and highest number of times a given letter
 must appear for the password to be valid. For example, 1-3 a means that
