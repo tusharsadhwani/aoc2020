@@ -137,6 +137,9 @@ Count the number of valid passports - those that have all required
 fields and valid values. Continue to treat cid as optional. In your
 batch file, how many passports are valid?
 """
+import re
+from types import FunctionType
+from typing import Callable, Dict
 
 
 def part1() -> None:
@@ -171,5 +174,71 @@ def part1() -> None:
     print(valid_passports)
 
 
+def height_validator(height_str: str) -> bool:
+    """Validates the height on a passport"""
+    is_cm = False
+    if height_str.endswith('cm'):
+        is_cm = True
+    elif height_str.endswith('in'):
+        is_cm = False
+    else:
+        return False
+
+    height = int(height_str[:-2])
+
+    if is_cm:
+        return 150 <= height <= 193
+    else:
+        return 59 <= height <= 76
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    with open('input.txt') as infile:
+        data = infile.read()
+
+    required_fields = {
+        'byr',
+        'iyr',
+        'eyr',
+        'hgt',
+        'hcl',
+        'ecl',
+        'pid',
+    }
+    validators: Dict[str, Callable[[str], bool]] = {
+        'byr': lambda x: 1920 <= int(x) <= 2002,
+        'iyr': lambda x: 2010 <= int(x) <= 2020,
+        'eyr': lambda x: 2020 <= int(x) <= 2030,
+        'hgt': height_validator,
+        'hcl': lambda x: re.match(r'^#[0-9a-f]{6}$', x) is not None,
+        'ecl': lambda x: x in ('amb', 'blu', 'brn',
+                               'gry', 'grn', 'hzl', 'oth'),
+        'pid': lambda x: re.match(r'^\d{9}$', x) is not None,
+    }
+
+    passports = data.split('\n\n')
+
+    valid_passports = 0
+    for passport in passports:
+        fields = passport.split()
+
+        field_names = set()
+        for field in fields:
+            field_name, _, field_value = field.partition(':')
+
+            if field_name not in validators:
+                continue
+
+            if validators[field_name](field_value):
+                field_names.add(field_name)
+
+        if required_fields.issubset(field_names):
+            valid_passports += 1
+
+    print(valid_passports)
+
+
 if __name__ == "__main__":
     part1()
+    part2()
