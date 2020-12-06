@@ -138,7 +138,6 @@ fields and valid values. Continue to treat cid as optional. In your
 batch file, how many passports are valid?
 """
 import re
-from types import FunctionType
 from typing import Callable, Dict
 
 
@@ -188,8 +187,8 @@ def height_validator(height_str: str) -> bool:
 
     if is_cm:
         return 150 <= height <= 193
-    else:
-        return 59 <= height <= 76
+
+    return 59 <= height <= 76
 
 
 def part2() -> None:
