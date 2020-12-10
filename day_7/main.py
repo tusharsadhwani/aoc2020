@@ -83,12 +83,12 @@ In this example, a single shiny gold bag must contain 126 other bags.
 
 How many individual bags are required inside your single shiny gold bag?
 """
-from collections import defaultdict
 import re
-from typing import DefaultDict, List, Optional, Set
+from collections import defaultdict
+from typing import DefaultDict, List, Optional, Set, Tuple
 
 
-def find_parent_trail(
+def find_parent_trails(
         bag_parents: DefaultDict[str, List[str]],
         bag: str,
         paths: List[List[str]],
@@ -106,7 +106,7 @@ def find_parent_trail(
 
     for parent in bag_parents[bag]:
         trail_copy = trail.copy()
-        find_parent_trail(bag_parents, parent, paths, trail_copy)
+        find_parent_trails(bag_parents, parent, paths, trail_copy)
 
 
 def part1() -> None:
@@ -127,15 +127,15 @@ def part1() -> None:
 
         inner_bags = inner_bags_str.split(', ')
         for bag in inner_bags:
-            match = re.match(r'(\d+) (.+) bags?', bag)
+            match = re.match(r'([0-9]+) (.+) bags?', bag)
             if not match:
                 continue
 
-            _bag_count, inner_bag_color = match.groups()
+            _, inner_bag_color = match.groups()
             bag_parents[inner_bag_color].append(bag_color)
 
     paths: List[List[str]] = []
-    find_parent_trail(bag_parents, 'shiny gold', paths)
+    find_parent_trails(bag_parents, 'shiny gold', paths)
 
     bag_set: Set[str] = set()
     for path in paths:
@@ -145,5 +145,54 @@ def part1() -> None:
     print(len(bag_set))
 
 
+def find_children_count(
+        bag_children: DefaultDict[str, List[Tuple[str, int]]],
+        bag: str) -> int:
+    """Finds count of all the bags inside given bag color"""
+    if bag_children.get(bag) is None:
+        return 0
+
+    children = bag_children[bag]
+    children_count = 0
+    for bag_color, bag_count in children:
+        children_count += bag_count
+        children_count += bag_count * find_children_count(
+            bag_children, bag_color
+        )
+
+    return children_count
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    with open('input.txt') as infile:
+        lines = infile.read().splitlines()
+
+    bag_children: DefaultDict[str, List[Tuple[str, int]]] = defaultdict(list)
+
+    for line in lines:
+        match = re.match(r'(.+) bags contain (.+).', line)
+        if not match:
+            continue
+
+        bag_color, inner_bags_str = match.groups()
+        if inner_bags_str == 'no other bags':
+            continue
+
+        inner_bags = inner_bags_str.split(', ')
+        for bag in inner_bags:
+            match = re.match(r'([0-9]+) (.+) bags?', bag)
+            if not match:
+                continue
+
+            bag_count_str, inner_bag_color = match.groups()
+            bag_count = int(bag_count_str)
+            bag_children[bag_color].append((inner_bag_color, bag_count))
+
+    total_bag_count = find_children_count(bag_children, 'shiny gold')
+    print(total_bag_count)
+
+
 if __name__ == "__main__":
     part1()
+    part2()
