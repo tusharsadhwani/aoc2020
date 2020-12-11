@@ -70,27 +70,62 @@ The first step of attacking the weakness in the XMAS data is to find the
 first number in the list (after the preamble) which is not the sum of
 two of the 25 numbers before it. What is the first number that does not
 have this property?
+
+--- Part Two ---
+The final step in breaking the XMAS encryption relies on the invalid
+number you just found: you must find a contiguous set of at least two
+numbers in your list which sum to the invalid number from step 1.
+
+Again consider the above example:
+
+35
+20
+15
+25
+47
+40
+62
+55
+65
+95
+102
+117
+150
+182
+127
+219
+299
+277
+309
+576
+
+In this list, adding up all of the numbers from 15 through 40 produces
+the invalid number from step 1, 127. (Of course, the contiguous set of
+numbers in your actual list might be much longer.)
+
+To find the encryption weakness, add together the smallest and largest
+number in this contiguous range; in this example, these are 15 and 47,
+producing 62.
+
+What is the encryption weakness in your XMAS-encrypted list of numbers?
 """
 
 from collections import deque
-from typing import Deque
+from typing import Deque, List
 
 
 def is_sum_of_two(number: int, array: Deque[int]) -> bool:
     """Returns if a number is a sum of any two numbers in array"""
-    for i in array:
-        for j in array:
-            if i+j == number:
+    for i, num1 in enumerate(array):
+        for j, num2 in enumerate(array):
+            if num1+num2 == number and i != j:
                 return True
 
     return False
 
 
-def part1() -> None:
-    """Solution for part 1"""
-    with open('input.txt') as infile:
-        nums = [int(line) for line in infile]
-
+def get_invalid_number(nums: List[int]) -> int:
+    """Returns the invalid number in the list"""
     last_few_nums: Deque[int] = deque()
     for num in nums:
         if len(last_few_nums) < 25:
@@ -98,11 +133,45 @@ def part1() -> None:
             continue
 
         if not is_sum_of_two(num, last_few_nums):
-            print(num)
+            return num
 
         last_few_nums.append(num)
         last_few_nums.popleft()
 
+    raise AssertionError('No invalid value found')
+
+
+def part1() -> None:
+    """Solution for part 1"""
+    with open('input.txt') as infile:
+        nums = [int(line) for line in infile]
+
+    print(get_invalid_number(nums))
+
+
+def part2() -> None:
+    """Solution for part 2"""
+
+    with open('input.txt') as infile:
+        nums = [int(line) for line in infile]
+
+    invalid_number = get_invalid_number(nums)
+
+    contiguous_slice: Deque[int] = deque()
+    slice_sum = 0
+
+    for num in nums:
+        if slice_sum == invalid_number and len(contiguous_slice) > 1:
+            print(max(contiguous_slice) + min(contiguous_slice))
+
+        contiguous_slice.append(num)
+        slice_sum += num
+
+        while slice_sum > invalid_number:
+            popped_num = contiguous_slice.popleft()
+            slice_sum -= popped_num
+
 
 if __name__ == "__main__":
     part1()
+    part2()
