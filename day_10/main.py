@@ -121,6 +121,20 @@ What is the number of 1-jolt differences multiplied by the number of
 
 def part1() -> None:
     """Solution for part 1"""
+    with open('input.txt') as infile:
+        adapters = [int(line) for line in infile]
+
+    adapters.append(0)
+
+    adapters.sort()
+
+    device_joltage = adapters[-1] + 3
+    adapters.append(device_joltage)
+
+    joltage_differences = Counter(adapters[i] - adapters[i-1]
+                                  for i in range(1, len(adapters)))
+
+    print(joltage_differences[1] * joltage_differences[3])
 
 
 if __name__ == "__main__":
