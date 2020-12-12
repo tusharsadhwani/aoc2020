@@ -109,6 +109,7 @@ Once people stop moving around, you count 37 occupied seats.
 Simulate your seating area by applying the seating rules repeatedly
 until no seats change state. How many seats end up occupied?
 """
+from copy import deepcopy
 from typing import List
 
 
@@ -144,7 +145,7 @@ def part1() -> None:
         seats = [list(row) for row in infile.read().splitlines()]
 
     while True:
-        new_seats = seats.copy()
+        new_seats = deepcopy(seats)
         for i, row in enumerate(seats):
             for j, seat in enumerate(row):
                 if seat == '.':
