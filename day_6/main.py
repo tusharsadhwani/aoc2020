@@ -103,7 +103,6 @@ In this example, the sum of these counts is 3 + 0 + 1 + 1 + 1 = 6.
 For each group, count the number of questions to which everyone answered
 "yes". What is the sum of those counts?
 """
-
 from typing import Optional, Set
 
 

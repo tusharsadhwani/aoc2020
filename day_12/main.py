@@ -98,8 +98,6 @@ Figure out where the navigation instructions actually lead. What is the
 Manhattan distance between that location and the ship's starting
 position?
 """
-
-
 from typing import List
 
 

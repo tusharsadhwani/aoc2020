@@ -72,8 +72,6 @@ Your seat wasn't at the very front or back, though; the seats with IDs
 
 What is the ID of your seat?
 """
-
-
 from typing import Set
 
 

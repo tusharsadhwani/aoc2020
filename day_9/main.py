@@ -109,7 +109,6 @@ producing 62.
 
 What is the encryption weakness in your XMAS-encrypted list of numbers?
 """
-
 from collections import deque
 from typing import Deque, List
 

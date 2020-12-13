@@ -183,8 +183,6 @@ them! Surely, there must be an efficient way to count the arrangements.
 What is the total number of distinct ways you can arrange the adapters
 to connect the charging outlet to your device?
 """
-
-
 from collections import defaultdict
 from typing import Counter, DefaultDict
 
