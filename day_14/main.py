@@ -66,13 +66,86 @@ address.) In the above example, only two values in memory are not zero -
 
 Execute the initialization program. What is the sum of all values left
 in memory after it completes?
+
+--- Part Two ---
+For some reason, the sea port's computer system still can't communicate
+with your ferry's docking program. It must be using version 2 of the
+decoder chip!
+
+A version 2 decoder chip doesn't modify the values being written at all.
+Instead, it acts as a memory address decoder. Immediately before a value
+is written to memory, each bit in the bitmask modifies the corresponding
+bit of the destination memory address in the following way:
+
+- If the bitmask bit is 0, the corresponding memory address bit is
+  unchanged.
+- If the bitmask bit is 1, the corresponding memory address bit is
+  overwritten with 1.
+- If the bitmask bit is X, the corresponding memory address bit is
+  floating.
+
+A floating bit is not connected to anything and instead fluctuates
+unpredictably. In practice, this means the floating bits will take on
+all possible values, potentially causing many memory addresses to be
+written all at once!
+
+For example, consider the following program:
+
+mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1
+
+When this program goes to write to memory address 42, it first applies
+the bitmask:
+
+address: 000000000000000000000000000000101010  (decimal 42)
+mask:    000000000000000000000000000000X1001X
+result:  000000000000000000000000000000X1101X
+
+After applying the mask, four bits are overwritten, three of which are
+different, and two of which are floating. Floating bits take on every
+possible combination of values; with two floating bits, four actual
+memory addresses are written:
+
+000000000000000000000000000000011010  (decimal 26)
+000000000000000000000000000000011011  (decimal 27)
+000000000000000000000000000000111010  (decimal 58)
+000000000000000000000000000000111011  (decimal 59)
+
+Next, the program is about to write to memory address 26 with a
+different bitmask:
+
+address: 000000000000000000000000000000011010  (decimal 26)
+mask:    00000000000000000000000000000000X0XX
+result:  00000000000000000000000000000001X0XX
+
+This results in an address with three floating bits, causing writes to
+eight memory addresses:
+
+000000000000000000000000000000010000  (decimal 16)
+000000000000000000000000000000010001  (decimal 17)
+000000000000000000000000000000010010  (decimal 18)
+000000000000000000000000000000010011  (decimal 19)
+000000000000000000000000000000011000  (decimal 24)
+000000000000000000000000000000011001  (decimal 25)
+000000000000000000000000000000011010  (decimal 26)
+000000000000000000000000000000011011  (decimal 27)
+
+The entire 36-bit address space still begins initialized to the value 0
+at every address, and you still need the sum of all values left in
+memory at the end of the program. In this example, the sum is 208.
+
+Execute the initialization program using an emulator for a version 2
+decoder chip. What is the sum of all values left in memory after it
+completes?
 """
 import re
-from typing import Dict
+from typing import Dict, List
 
 
 def masked_value(value: int, mask: str) -> int:
-    """Returns masked value"""
+    """Returns masked value for part 1"""
     value_binary = f'{value:0>36b}'
     masked = ''
     for bit, mask_bit in zip(value_binary, mask):
@@ -105,12 +178,81 @@ def part1() -> None:
                 if not match:
                     continue
 
-                address_str, value_str = match.groups()
-                address, value = int(address_str), int(value_str)
+                address, value = (int(x) for x in match.groups())
                 memory[address] = masked_value(value, mask)
+
+    print(sum(memory.values()))
+
+
+def masked_address(address: int, mask: str) -> str:
+    """Returns masked address for part 2"""
+    address_binary = f'{address:0>36b}'
+    masked = ''
+    for bit, mask_bit in zip(address_binary, mask):
+        if mask_bit == '0':
+            masked += bit
+        else:
+            masked += mask_bit
+
+    return masked
+
+
+def _floating_addresses(masked: str) -> List[str]:
+    """Recursive implementation for floating_addresses"""
+    addresses: List[str] = []
+    for index, bit in enumerate(masked):
+        if bit == 'X':
+            partial_addresses = _floating_addresses(masked[index+1:])
+
+            masked_0 = [masked[:index] + '0' + rest
+                        for rest in partial_addresses]
+            masked_1 = [masked[:index] + '1' + rest
+                        for rest in partial_addresses]
+
+            addresses.extend(masked_0)
+            addresses.extend(masked_1)
+            break
+    else:
+        addresses.append(masked)
+
+    return addresses
+
+
+def floating_addresses(masked: str) -> List[int]:
+    """Returns all concrete addresses for a floating address string"""
+    return [int(addr, 2) for addr in _floating_addresses(masked)]
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    mask = ""
+    memory: Dict[int, int] = {}
+
+    mask_regex = re.compile(r'mask = (.+)\n')
+    memory_regex = re.compile(r'mem\[(\d+)\] = (\d+)')
+    with open('input.txt') as infile:
+        for line in infile:
+            if line.startswith('mask'):
+                match = mask_regex.match(line)
+                if not match:
+                    continue
+
+                mask, = match.groups()
+
+            else:
+                memory_regex = re.compile(r'mem\[(\d+)\] = (\d+)')
+                match = memory_regex.match(line)
+                if not match:
+                    continue
+
+                address, value = (int(x) for x in match.groups())
+                masked = masked_address(address, mask)
+                for addr in floating_addresses(masked):
+                    memory[addr] = value
 
     print(sum(memory.values()))
 
 
 if __name__ == "__main__":
     part1()
+    part2()
