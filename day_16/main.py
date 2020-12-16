@@ -105,16 +105,21 @@ Once you work out which field is which, look for the six fields on your
 ticket that start with the word departure. What do you get if you
 multiply those six values together?
 """
-import enum
 import re
 from typing import Dict, List, TextIO, Tuple
+
+
+def in_ranges(value: int, ranges: Tuple[int, int, int, int]) -> bool:
+    """Returns if given value is in one of the two ranges"""
+    start1, end1, start2, end2 = ranges
+    return start1 <= value <= end1 or start2 <= value <= end2
 
 
 def validate_tickets(
         fields: Dict[str, Tuple[int, int, int, int]],
         infile: TextIO) -> Tuple[List[List[int]], List[int]]:
     """Validates the tickets in rest of the file"""
-    ranges = list(fields.values())
+    ranges_list = list(fields.values())
 
     valid_tickets: List[List[int]] = []
     invalids: List[int] = []
@@ -122,8 +127,8 @@ def validate_tickets(
     for line in infile:
         ticket_values = [int(x) for x in line.split(',')]
         for value in ticket_values:
-            for start1, end1, start2, end2 in ranges:
-                if start1 <= value <= end1 or start2 <= value <= end2:
+            for ranges in ranges_list:
+                if in_ranges(value, ranges):
                     break
             else:
                 invalids.append(value)
@@ -174,8 +179,8 @@ def guess_fields(
 
     for ticket_values in tickets:
         for index, value in enumerate(ticket_values):
-            for field, (start1, end1, start2, end2) in fields.items():
-                if start1 <= value <= end1 or start2 <= value <= end2:
+            for field, ranges in fields.items():
+                if in_ranges(value, ranges):
                     continue
 
                 # invalid index for field
