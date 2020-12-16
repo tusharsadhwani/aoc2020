@@ -105,6 +105,7 @@ Once you work out which field is which, look for the six fields on your
 ticket that start with the word departure. What do you get if you
 multiply those six values together?
 """
+import enum
 import re
 from typing import Dict, List, TextIO, Tuple
 
@@ -180,28 +181,27 @@ def guess_fields(
                 # invalid index for field
                 possible_indices[field].remove(index)
 
-    # for f, v in possible_indices.items():
-    #     print(f, v)
-
-    correct_indices = {}
+    correct_indices: Dict[str, int] = {}
     while True:
         for field, indices in possible_indices.items():
             if len(indices) == 1:
                 index = indices.pop()
-                correct_indices[field] = index+1  # 1-indexed
+                correct_indices[field] = index
                 for _field in possible_indices:
                     try:
                         possible_indices[_field].remove(index)
                     except KeyError:
                         pass
                 break
-        else:
+        else:  # no more fields left with one possible column index
             break
 
-    # for c, v in correct_indices.items():
-    #     print(c, v)
+    ordered_fields = ['' for _ in correct_indices]
 
-    return []
+    for field, index in correct_indices.items():
+        ordered_fields[index] = field
+
+    return ordered_fields
 
 
 def part2() -> None:
@@ -220,13 +220,17 @@ def part2() -> None:
         for line in infile:
             if line.startswith('nearby tickets'):
                 valid_tickets, _ = validate_tickets(fields, infile)
-
-                print('valid tickets:')
-                for v in valid_tickets:
-                    print(v)
-                print()
                 field_names = guess_fields(fields, valid_tickets)
-                # print(field_names)
+                departure_indices = [
+                    index for index, field in enumerate(field_names)
+                    if field.startswith('departure')
+                ]
+
+                product = 1
+                for index in departure_indices:
+                    product *= my_ticket[index]
+
+                print(product)
 
 
 if __name__ == "__main__":
