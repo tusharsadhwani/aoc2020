@@ -106,13 +106,15 @@ ticket that start with the word departure. What do you get if you
 multiply those six values together?
 """
 import re
-from typing import List, TextIO, Tuple
+from typing import Dict, List, TextIO, Tuple
 
 
 def validate_tickets(
-        ranges: List[Tuple[int, int, int, int]],
+        fields: Dict[str, Tuple[int, int, int, int]],
         infile: TextIO) -> Tuple[List[List[int]], List[int]]:
     """Validates the tickets in rest of the file"""
+    ranges = list(fields.values())
+
     valid_tickets: List[List[int]] = []
     invalids: List[int] = []
 
@@ -131,35 +133,102 @@ def validate_tickets(
     return valid_tickets, invalids
 
 
-def scan_fields(infile: TextIO) -> List[Tuple[int, int, int, int]]:
+def scan_fields(infile: TextIO) -> Dict[str, Tuple[int, int, int, int]]:
     """Scan all fields in input"""
     field_rules = re.compile(r'^([\w ]+): ([\w\-]+) or ([\w\-]+)$')
-    ranges: List[Tuple[int, int, int, int]] = []
+    fields: Dict[str, Tuple[int, int, int, int]] = {}
 
     for line in infile:
         match = field_rules.match(line)
         if match:
-            _, range1, range2 = match.groups()
+            field, range1, range2 = match.groups()
             start1, end1 = (int(x) for x in range1.split('-'))
             start2, end2 = (int(x) for x in range2.split('-'))
-            ranges.append((start1, end1, start2, end2))
+            fields[field] = start1, end1, start2, end2
         else:
             break
 
-    return ranges
+    return fields
 
 
 def part1() -> None:
     """Solution for part 1"""
 
     with open('input.txt') as infile:
-        ranges = scan_fields(infile)
+        fields = scan_fields(infile)
 
         for line in infile:
             if line.startswith('nearby tickets'):
-                _, invalids = validate_tickets(ranges, infile)
+                _, invalids = validate_tickets(fields, infile)
                 print(sum(invalids))
+
+
+def guess_fields(
+        fields: Dict[str, Tuple[int, int, int, int]],
+        tickets: List[List[int]]) -> List[str]:
+    """Guess the order of ticket fields"""
+    column_count = len(tickets[0])
+    possible_indices = {field: set(range(column_count))
+                        for field in fields}
+
+    for ticket_values in tickets:
+        for index, value in enumerate(ticket_values):
+            for field, (start1, end1, start2, end2) in fields.items():
+                if start1 <= value <= end1 or start2 <= value <= end2:
+                    continue
+
+                # invalid index for field
+                possible_indices[field].remove(index)
+
+    # for f, v in possible_indices.items():
+    #     print(f, v)
+
+    correct_indices = {}
+    while True:
+        for field, indices in possible_indices.items():
+            if len(indices) == 1:
+                index = indices.pop()
+                correct_indices[field] = index+1  # 1-indexed
+                for _field in possible_indices:
+                    try:
+                        possible_indices[_field].remove(index)
+                    except KeyError:
+                        pass
+                break
+        else:
+            break
+
+    # for c, v in correct_indices.items():
+    #     print(c, v)
+
+    return []
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    with open('input.txt') as infile:
+        fields = scan_fields(infile)
+
+        my_ticket: List[int] = []
+
+        for line in infile:
+            if line.startswith('your ticket'):
+                ticket_line = infile.readline()
+                my_ticket = [int(x) for x in ticket_line.split(',')]
+                break
+
+        for line in infile:
+            if line.startswith('nearby tickets'):
+                valid_tickets, _ = validate_tickets(fields, infile)
+
+                print('valid tickets:')
+                for v in valid_tickets:
+                    print(v)
+                print()
+                field_names = guess_fields(fields, valid_tickets)
+                # print(field_names)
 
 
 if __name__ == "__main__":
     part1()
+    part2()
