@@ -71,50 +71,95 @@ invalid values produces your ticket scanning error rate: 4 + 55 + 12 =
 
 Consider the validity of the nearby tickets you scanned. What is your
 ticket scanning error rate?
+
+--- Part Two ---
+Now that you've identified which tickets contain invalid values, discard
+those tickets entirely. Use the remaining valid tickets to determine
+which field is which.
+
+Using the valid ranges for each field, determine what order the fields
+appear on the tickets. The order is consistent between all tickets: if
+seat is the third field, it is the third field on every ticket,
+including your ticket.
+
+For example, suppose you have the following notes:
+
+class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
+
+your ticket:
+11,12,13
+
+nearby tickets:
+3,9,18
+15,1,5
+5,14,9
+
+Based on the nearby tickets in the above example, the first position
+must be row, the second position must be class, and the third position
+must be seat; you can conclude that in your ticket, class is 12, row is
+11, and seat is 13.
+
+Once you work out which field is which, look for the six fields on your
+ticket that start with the word departure. What do you get if you
+multiply those six values together?
 """
 import re
-from typing import List, Tuple
+from typing import List, TextIO, Tuple
+
+
+def validate_tickets(
+        ranges: List[Tuple[int, int, int, int]],
+        infile: TextIO) -> Tuple[List[List[int]], List[int]]:
+    """Validates the tickets in rest of the file"""
+    valid_tickets: List[List[int]] = []
+    invalids: List[int] = []
+
+    for line in infile:
+        ticket_values = [int(x) for x in line.split(',')]
+        for value in ticket_values:
+            is_valid = False
+            for start1, end1, start2, end2 in ranges:
+                if start1 <= value <= end1 or start2 <= value <= end2:
+                    is_valid = True
+                    break
+            if is_valid:
+                valid_tickets.append(ticket_values)
+            else:
+                invalids.append(value)
+
+    return valid_tickets, invalids
+
+
+def scan_fields(infile: TextIO) -> List[Tuple[int, int, int, int]]:
+    """Scan all fields in input"""
+    field_rules = re.compile(r'^([\w ]+): ([\w\-]+) or ([\w\-]+)$')
+    ranges: List[Tuple[int, int, int, int]] = []
+
+    for line in infile:
+        match = field_rules.match(line)
+        if match:
+            _, range1, range2 = match.groups()
+            start1, end1 = (int(x) for x in range1.split('-'))
+            start2, end2 = (int(x) for x in range2.split('-'))
+            ranges.append((start1, end1, start2, end2))
+        else:
+            break
+
+    return ranges
 
 
 def part1() -> None:
     """Solution for part 1"""
-    field_rules_regex = re.compile(r'^([\w ]+): ([\w\-]+) or ([\w\-]+)$')
-
-    ranges: List[Tuple[int, int, int, int]] = []
-    invalids: List[int] = []
 
     with open('input.txt') as infile:
-        scanning_fields = True
-        scanning_nearby_tickets = False
+        ranges = scan_fields(infile)
 
         for line in infile:
-            if scanning_fields:
-                match = field_rules_regex.match(line)
-                if match:
-                    _, range1, range2 = match.groups()
-                    start1, end1 = (int(x) for x in range1.split('-'))
-                    start2, end2 = (int(x) for x in range2.split('-'))
-                    ranges.append((start1, end1, start2, end2))
-                else:
-                    scanning_fields = False
-                continue
-
             if line.startswith('nearby tickets'):
-                scanning_nearby_tickets = True
-                continue
-
-            if scanning_nearby_tickets:
-                ticket_values = [int(x) for x in line.split(',')]
-                for value in ticket_values:
-                    for start1, end1, start2, end2 in ranges:
-                        if start1 <= value <= end1:
-                            break
-                        if start2 <= value <= end2:
-                            break
-                    else:
-                        invalids.append(value)
-
-    print(sum(invalids))
+                _, invalids = validate_tickets(ranges, infile)
+                print(sum(invalids))
 
 
 if __name__ == "__main__":
