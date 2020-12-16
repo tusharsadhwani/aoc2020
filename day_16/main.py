@@ -119,15 +119,14 @@ def validate_tickets(
     for line in infile:
         ticket_values = [int(x) for x in line.split(',')]
         for value in ticket_values:
-            is_valid = False
             for start1, end1, start2, end2 in ranges:
                 if start1 <= value <= end1 or start2 <= value <= end2:
-                    is_valid = True
                     break
-            if is_valid:
-                valid_tickets.append(ticket_values)
             else:
                 invalids.append(value)
+                break
+        else:
+            valid_tickets.append(ticket_values)
 
     return valid_tickets, invalids
 
