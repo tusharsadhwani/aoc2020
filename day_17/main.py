@@ -252,5 +252,90 @@ def part1() -> None:
           .count(True))
 
 
+def create_cube_grid_4d(cubes: List[str]) -> List[List[List[List[bool]]]]:
+    """Creates the cube grid big enough to simulate six cycles"""
+    size = len(cubes)
+    grid = [[[[False for _ in range(size+12)]
+              for _ in range(size+12)]
+             for _ in range(1+12)]
+            for _ in range(1+12)]
+
+    for i in range(size):
+        for j in range(size):
+            if cubes[i][j] == '#':
+                grid[6][6][6+i][6+j] = True
+
+    return grid
+
+
+def get_neighbour_count_4d(
+        grid: List[List[List[List[bool]]]],
+        i: int, j: int, k: int, l: int) -> int:
+    """Returns the number of active neighbours from a grid cell"""
+    neighbour_count = 0
+
+    spaces = len(grid)
+    layers = len(grid[0])
+    rows = len(grid[0][0])
+    cols = len(grid[0][0][0])
+    for _i in -1, 0, 1:
+        for _j in -1, 0, 1:
+            for _k in -1, 0, 1:
+                for _l in -1, 0, 1:
+                    if _i == _j == _k == _l == 0:
+                        continue
+                    new_i = i + _i
+                    new_j = j + _j
+                    new_k = k + _k
+                    new_l = l + _l
+
+                    if new_i < 0 or new_i >= spaces:
+                        continue
+                    if new_j < 0 or new_j >= layers:
+                        continue
+                    if new_k < 0 or new_k >= rows:
+                        continue
+                    if new_l < 0 or new_l >= cols:
+                        continue
+
+                    if grid[new_i][new_j][new_k][new_l]:
+                        neighbour_count += 1
+
+    return neighbour_count
+
+
+def life_4d(grid: List[List[List[List[bool]]]]) -> List[List[List[List[bool]]]]:
+    """Runs one cycle of 4d conway's game of life"""
+    new_grid = copy.deepcopy(grid)
+
+    for i, space in enumerate(grid):
+        for j, layer in enumerate(space):
+            for k, row in enumerate(layer):
+                for l, active in enumerate(row):
+                    count = get_neighbour_count_4d(grid, i, j, k, l)
+
+                    if active and count not in (2, 3):
+                        new_grid[i][j][k][l] = False
+
+                    elif not active and count == 3:
+                        new_grid[i][j][k][l] = True
+
+    return new_grid
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    with open('input.txt') as infile:
+        hypercubes = infile.read().splitlines()
+
+    grid = create_cube_grid_4d(hypercubes)
+    for _ in range(6):
+        grid = life_4d(grid)
+
+    print([cell for space in grid for layer in space
+           for row in layer for cell in row].count(True))
+
+
 if __name__ == "__main__":
     part1()
+    part2()
