@@ -94,14 +94,14 @@ def is_higher_precedence(operator: str, operator_stack: List[str]) -> bool:
     return False
 
 
-def evaluate(operand1: int, operand2: int, operator: str) -> int:
+def evaluate_expr(operand1: int, operand2: int, operator: str) -> int:
     """Evaluate expression"""
     if operator == '+':
         return operand1 + operand2
     if operator == '*':
         return operand1 * operand2
 
-    raise AssertionError('Invalid operator value', operator)
+    raise AssertionError(f'Invalid operator value: {operator}')
 
 
 def process_operation(
@@ -112,8 +112,53 @@ def process_operation(
     operand1 = operand_stack.pop()
     operand2 = operand_stack.pop()
 
-    result = evaluate(operand1, operand2, operator)
+    result = evaluate_expr(operand1, operand2, operator)
     operand_stack.append(result)
+
+
+def evaluate_line(line: str, check_precedence: bool = False) -> int:
+    """Evaluates a line and returns its value"""
+    operand_stack: List[int] = []
+    operator_stack: List[str] = []
+
+    for char in line:
+        if char == ' ':
+            continue
+
+        if char == '(':
+            operator_stack.append(char)
+
+        elif char.isdigit():
+            operand_stack.append(int(char))
+
+        elif char in ('+', '*'):
+            while operator_stack:
+                operator_stack_top = operator_stack[-1]
+                if operator_stack_top == '(':
+                    break
+
+                if (not check_precedence or
+                        is_higher_precedence(char, operator_stack)):
+                    process_operation(operand_stack, operator_stack)
+                else:
+                    break
+
+            operator_stack.append(char)
+
+        elif char == ')':
+            while True:
+                operator_stack_top = operator_stack[-1]
+                if operator_stack_top == '(':
+                    operator_stack.pop()
+                    break
+
+                process_operation(operand_stack, operator_stack)
+
+    while operator_stack:
+        process_operation(operand_stack, operator_stack)
+
+    result = operand_stack.pop()
+    return result
 
 
 def part1() -> None:
@@ -123,47 +168,7 @@ def part1() -> None:
 
     total = 0
     for line in lines:
-        operand_stack: List[int] = []
-        operator_stack: List[str] = []
-
-        for char in line:
-            if char == ' ':
-                continue
-
-            if char == '(':
-                operator_stack.append(char)
-
-            elif char.isdigit():
-                operand_stack.append(int(char))
-
-            elif char in ['+', '*']:
-                while operator_stack:
-                    operator_stack_top = operator_stack[-1]
-                    if operator_stack_top == '(':
-                        break
-
-                    process_operation(operand_stack, operator_stack)
-
-                operator_stack.append(char)
-
-            elif char == ')':
-                opening_parenthesis_found = False
-                while not opening_parenthesis_found:
-                    operator_stack_top = operator_stack[-1]
-                    if operator_stack_top == '(':
-                        opening_parenthesis_found = True
-                        operator_stack.pop()
-                    else:
-                        process_operation(operand_stack, operator_stack)
-
-            else:
-                raise AssertionError(f'unknown character: {char}')
-
-        while operator_stack:
-            process_operation(operand_stack, operator_stack)
-
-        result = operand_stack.pop()
-        assert len(operand_stack) == 0, 'Non-empty stack'
+        result = evaluate_line(line)
         total += result
 
     print(total)
@@ -176,50 +181,7 @@ def part2() -> None:
 
     total = 0
     for line in lines:
-        operand_stack: List[int] = []
-        operator_stack: List[str] = []
-
-        for char in line:
-            if char == ' ':
-                continue
-
-            if char == '(':
-                operator_stack.append(char)
-
-            elif char.isdigit():
-                operand_stack.append(int(char))
-
-            elif char in ['+', '*']:
-                while operator_stack:
-                    operator_stack_top = operator_stack[-1]
-                    if operator_stack_top == '(':
-                        break
-
-                    if is_higher_precedence(char, operator_stack):
-                        process_operation(operand_stack, operator_stack)
-                    else:
-                        break
-
-                operator_stack.append(char)
-
-            elif char == ')':
-                opening_parenthesis_found = False
-                while not opening_parenthesis_found:
-                    operator_stack_top = operator_stack[-1]
-                    if operator_stack_top == '(':
-                        opening_parenthesis_found = True
-                        operator_stack.pop()
-                    else:
-                        process_operation(operand_stack, operator_stack)
-
-            else:
-                raise AssertionError(f'unknown character: {char}')
-
-        while operator_stack:
-            process_operation(operand_stack, operator_stack)
-
-        result = operand_stack.pop()
-        assert len(operand_stack) == 0, 'Non-empty stack'
+        result = evaluate_line(line, check_precedence=True)
         total += result
 
     print(total)
