@@ -112,7 +112,7 @@ def parse_input() -> Tuple[Dict[int, str], List[str]]:
 
 
 def parse_concat_rule(rule_dict: Dict[int, str], rule: str) -> str:
-    """Parses concat rule into regex string"""
+    """Parses a concat rule (i.e. "a b c ...") into a regex string"""
     rule_nums = [int(num) for num in rule.split()]
     parsed_list = (parse_rule(rule_dict, num) for num in rule_nums)
     parsed_rule = ''.join(parsed_list)
@@ -123,7 +123,7 @@ def parse_rule(
         rule_dict: Dict[int, str],
         rule_num: int,
         parsed_rules: Optional[Dict[int, str]] = None) -> str:
-    """Recursively parses rules into a regex string"""
+    """Recursively parses a rule into a regex string"""
     if parsed_rules is None:
         parsed_rules = {}
 
