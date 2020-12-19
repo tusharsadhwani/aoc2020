@@ -111,7 +111,7 @@ def parse_input() -> Tuple[Dict[int, str], List[str]]:
     return rule_dict, messages
 
 
-def parse_concat_rule(rule_dict, rule) -> str:
+def parse_concat_rule(rule_dict: Dict[int, str], rule: str) -> str:
     """Parses concat rule into regex string"""
     rule_nums = [int(num) for num in rule.split()]
     parsed_list = (parse_rule(rule_dict, num) for num in rule_nums)
