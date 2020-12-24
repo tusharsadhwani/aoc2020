@@ -188,27 +188,15 @@ Assemble the tiles into an image. What do you get if you multiply
 together the IDs of the four corner tiles?
 """
 from __future__ import annotations
+from collections import defaultdict, deque
 
 import re
-from typing import Generator, List, Set
+from typing import (DefaultDict, Deque, Generator, List,
+                    Optional, Protocol, Set, Tuple)
 
 
 class Tile:
     """Tile class that holds tile border information"""
-
-    __slots__ = (
-        "tile_id",
-
-        "top",
-        "bottom",
-        "left",
-        "right",
-
-        "topleft",
-        "topright",
-        "bottomleft",
-        "bottomright",
-    )
 
     def __init__(self, tile_id: int, grid: List[str]) -> None:
         self.tile_id = tile_id
@@ -222,6 +210,8 @@ class Tile:
         self.bottom = grid[-1][1:-1]
         self.left = ''.join(row[0] for row in grid[1:-1])
         self.right = ''.join(row[-1] for row in grid[1:-1])
+
+        self.oriented = False
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Tile):
@@ -293,23 +283,6 @@ class Tile:
 
         return new_tile
 
-    # def rotate180(self) -> Tile:
-    #     """Returns a new tile rotated by 180 degrees.
-    #     Same as flipping x and then flipping y."""
-    #     new_tile = Tile(self.tile_id, ['.'])
-
-    #     new_tile.left = self.right[::-1]
-    #     new_tile.right = self.left[::-1]
-    #     new_tile.top = self.bottom[::-1]
-    #     new_tile.bottom = self.top[::-1]
-
-    #     new_tile.topleft = self.bottomright
-    #     new_tile.topright = self.bottomleft
-    #     new_tile.bottomleft = self.topright
-    #     new_tile.bottomright = self.topleft
-
-    #     return new_tile
-
     def rotations(self) -> Generator[Tile, None, None]:
         """Returns all rotations of given tile"""
         tile = self
@@ -319,8 +292,25 @@ class Tile:
 
     def orientations(self) -> Generator[Tile, None, None]:
         """Returns all possible orientations of given tile"""
+        if self.oriented:
+            yield self
+            return
+
         yield from self.rotations()
         yield from self.flip().rotations()
+
+    def orient(self, tile: Tile) -> None:
+        """Modifies the tile to given tile's orientation"""
+        self.topleft = tile.topleft
+        self.topright = tile.topright
+        self.bottomleft = tile.bottomleft
+        self.bottomright = tile.bottomright
+        self.top = tile.top
+        self.bottom = tile.bottom
+        self.left = tile.left
+        self.right = tile.right
+
+        self.oriented = True
 
     def match_top(self, other: Tile) -> bool:
         """Returns if the top edge matches with other tile's bottom edge"""
@@ -376,32 +366,171 @@ def parse_tiles() -> Set[Tile]:
     return tile_set
 
 
-def part1() -> None:
-    """Solution for part 1"""
-    tiles = parse_tiles()
+def find_corner_tiles(tiles: Set[Tile]) -> Tuple[int, Tile]:
     product = 1
-
+    topleft_tile: Optional[Tile] = None
     for tile1 in tiles:
         match_count = 0
+        is_top = False
+        is_left = False
         for tile in tiles:
             if tile == tile1:
                 continue
-
             for tile2 in tile.orientations():
                 if tile1.match_top(tile2):
                     match_count += 1
                 elif tile1.match_bottom(tile2):
+                    is_top = True
                     match_count += 1
                 elif tile1.match_left(tile2):
                     match_count += 1
                 elif tile1.match_right(tile2):
+                    is_left = True
                     match_count += 1
-
         if match_count == 2:
+            if tile1.tile_id in [3089, 2647, 3643, 1987]:
+                print(is_top, is_left)
             product *= tile1.tile_id
+            if is_top and is_left:
+                topleft_tile = tile1
 
     print(product)
+    # assert topleft_tile is not None
+    return product, topleft_tile
+
+
+def part1() -> None:
+    """Solution for part 1"""
+    tiles = parse_tiles()
+    product, _ = find_corner_tiles(tiles)
+    print(product)
+
+
+class _PuzzlePiece(Protocol):
+    @property
+    def tile(self) -> Tile: ...
+    @property
+    def right(self) -> Optional[_PuzzlePiece]: ...
+    @property
+    def down(self) -> Optional[_PuzzlePiece]: ...
+
+
+class PuzzlePiece:
+    """A graph-like structure to connect puzzle pieces"""
+
+    def __init__(
+            self,
+            tile: Tile,
+            right: Optional[_PuzzlePiece] = None,
+            down: Optional[_PuzzlePiece] = None) -> None:
+        self.tile = tile
+        self.right = right
+        self.down = down
+
+
+def part2() -> None:
+    """Solution for part 2"""
+    _tiles = parse_tiles()
+
+    pieces: DefaultDict[int, Optional[PuzzlePiece]] = defaultdict(lambda: None)
+
+    # _, topleft_tile = find_corner_tiles(tiles)
+    for topleft_tile in [x for x in _tiles if x.tile_id in [3089, 2647, 3643, 1987]]:
+        tiles = {t for t in _tiles}
+        topleft_tile.oriented = True
+
+        tile_queue: Deque[Tile] = deque()
+        seen_tiles: Set[int] = set()
+
+        tile_queue.append(topleft_tile)
+        while tile_queue:
+            tile1 = tile_queue.pop()
+            print('Tile:', tile1.tile_id)
+            for tile in tiles:
+                if tile == tile1:
+                    continue
+
+                if tile.tile_id in seen_tiles:
+                    continue
+
+                for tile2 in tile.orientations():
+                    if tile1.match_right(tile2):
+                        piece = pieces[tile1.tile_id] or PuzzlePiece(tile1)
+                        piece.right = pieces[tile2.tile_id] or PuzzlePiece(
+                            tile2)
+                        pieces[tile1.tile_id] = piece
+                        pieces[tile2.tile_id] = piece.right
+                        tile.orient(tile2)
+                        tile_queue.append(tile)
+                        print(tile1.tile_id, '->right', tile2.tile_id)
+                        # print_pieces(pieces, topleft_tile)
+
+                    elif tile1.match_left(tile2):
+                        piece = pieces[tile2.tile_id] or PuzzlePiece(tile2)
+                        piece.right = pieces[tile1.tile_id] or PuzzlePiece(
+                            tile1)
+                        pieces[tile2.tile_id] = piece
+                        pieces[tile1.tile_id] = piece.right
+                        tile.orient(tile2)
+                        tile_queue.append(tile)
+                        print(tile1.tile_id, '->left', tile2.tile_id)
+                        # print_pieces(pieces, topleft_tile)
+
+                    elif tile1.match_bottom(tile2):
+                        piece = pieces[tile1.tile_id] or PuzzlePiece(tile1)
+                        piece.down = pieces[tile2.tile_id] or PuzzlePiece(
+                            tile2)
+                        pieces[tile1.tile_id] = piece
+                        pieces[tile2.tile_id] = piece.down
+                        tile.orient(tile2)
+                        tile_queue.append(tile)
+                        print(tile1.tile_id, '->bottom', tile2.tile_id)
+                        # print_pieces(pieces, topleft_tile)
+
+                    elif tile1.match_top(tile2):
+                        piece = pieces[tile2.tile_id] or PuzzlePiece(tile2)
+                        piece.down = pieces[tile1.tile_id] or PuzzlePiece(
+                            tile1)
+                        pieces[tile2.tile_id] = piece
+                        pieces[tile1.tile_id] = piece.down
+                        tile.orient(tile2)
+                        tile_queue.append(tile)
+                        print(tile1.tile_id, '->top', tile2.tile_id)
+
+                        # print_pieces(pieces, topleft_tile)
+            seen_tiles.add(tile1.tile_id)
+            print('-------------------')
+
+        print('PRINTING PIECES')
+        print_pieces(pieces, topleft_tile)
+
+        print('---')
+
+    # for i in sorted(pieces):
+    #     p = pieces[i]
+    #     print(i, p.right.tile.tile_id if p and p.right else '-',
+    #           p.down.tile.tile_id if p and p.down else '-')
+
+
+def print_pieces(pieces: DefaultDict[int, Optional[PuzzlePiece]], topleft_tile: Tile) -> None:
+    t = pieces[topleft_tile.tile_id]
+    while t:
+        t2 = t
+        while t2:
+            # assert t2 in pieces
+            print(t2.tile.tile_id, end=' ')
+            # if t2.tile.tile_id == 1489:
+            #     print('<1489 found>')
+            #     print(t2.tile.tile_id)
+            #     print(t2.right.tile.tile_id if t2.right else None)
+            #     print(t2.down.tile.tile_id if t2.down else None)
+            #     print('</>')
+            t2 = t2.right
+        print()
+        t = t.down
 
 
 if __name__ == "__main__":
     part1()
+    part2()
+    # 3089, 2647, 3643, 1987
