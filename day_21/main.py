@@ -74,8 +74,8 @@ def parse_input() -> List[Tuple[Set[str], Set[str]]]:
     return foods
 
 
-def part1() -> None:
-    """Solution for part 1"""
+def main() -> None:
+    """Solution for part 1 and 2"""
     foods = parse_input()
 
     allergen_map: Dict[str, Set[str]] = {}
@@ -86,12 +86,12 @@ def part1() -> None:
             else:
                 allergen_map[allergen] &= set(ingredients)
 
-    allergic_ingredients: Set[str] = set()
+    allergic_ingredients: Dict[str, str] = {}
     while True:
         for allergen, ingredients in allergen_map.items():
             if len(ingredients) == 1:
                 ingredient = ingredients.pop()
-                allergic_ingredients.add(ingredient)
+                allergic_ingredients[ingredient] = allergen
                 for _allergen in allergen_map:
                     with suppress(KeyError):
                         allergen_map[_allergen].remove(ingredient)
@@ -109,6 +109,10 @@ def part1() -> None:
 
     print(non_allergic_count)
 
+    print(','.join(ingredient for ingredient, _ in
+                   sorted(allergic_ingredients.items(),
+                          key=lambda x: x[1])))
+
 
 if __name__ == "__main__":
-    part1()
+    main()
