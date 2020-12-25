@@ -126,7 +126,7 @@ What do you get if you multiply their labels together?
 """
 from __future__ import annotations
 
-from typing import Tuple, TypeVar
+from typing import Dict, Tuple, TypeVar
 
 
 class CircularList:
@@ -150,26 +150,35 @@ class CircularList:
         print(node.value, end='->self' if arrows else '\n')
 
 
-def make_circular_linked_list(cups: str, million: bool = False) -> CircularList:
+def make_circular_linked_list(
+        cups: str,
+        million: bool = False) -> Tuple[CircularList, Dict[int, CircularList]]:
     """Creates circular linked list out of cups string"""
-    start = CircularList(int(cups[0]))
+    start_value = int(cups[0])
+    start = CircularList(start_value)
+    cup_dict: Dict[int, CircularList] = {start_value: start}
 
     node = start
     index = 1
     for cup in cups[1:]:
-        new_node = CircularList(int(cup))
+        value = int(cup)
+        new_node = CircularList(value)
+        cup_dict[value] = new_node
         node.next = new_node
+
         node = new_node
         index += 1
 
     if million:
         for i in range(index, 1_000_000):
-            new_node = CircularList(i+1)
+            value = i+1
+            new_node = CircularList(value)
+            cup_dict[value] = new_node
             node.next = new_node
             node = new_node
 
     node.next = start
-    return start
+    return start, cup_dict
 
 
 T = TypeVar('T')
@@ -188,45 +197,48 @@ def pop3(current: CircularList) -> Tuple3[CircularList]:
 def push3(
         current: CircularList,
         nodes: Tuple3[CircularList],
-        max_value: int
-) -> None:
+        cup_dict: Dict[int, CircularList],
+        max_value: int) -> None:
     """Pushes the three cups into appropriate index"""
     cup1, _, cup3 = nodes
 
     start = current
 
-    node = start
-    value = node.value - 1 or max_value
+    value = start.value - 1 or max_value
     node_values = [node.value for node in nodes]
     while value in node_values:
         value -= 1
         if value <= 0:
             value = max_value
 
-    while True:
-        if node.value == value:
-            cup3.next = node.next
-            break
-        node = node.next
-
+    # while True:
+    #     if node.value == value:
+    #         cup3.next = node.next
+    #         break
+    #     node = node.next
+    node = cup_dict[value]
+    cup3.next = node.next
     node.next = cup1
 
 
-def crab_move(current: CircularList, max_value: int) -> CircularList:
+def crab_move(
+        current: CircularList,
+        cup_dict: Dict[int, CircularList],
+        max_value: int) -> CircularList:
     """Simulates one move by the crab"""
     nodes = pop3(current)
-    push3(current, nodes, max_value)
+    push3(current, nodes, cup_dict, max_value)
     current = current.next
     return current
 
 
 def part1() -> None:
     """Solution for part 1"""
-    cups = make_circular_linked_list('583976241')
+    cups, cup_dict = make_circular_linked_list('583976241')
 
     current = cups
     for _ in range(100):
-        current = crab_move(current, max_value=9)
+        current = crab_move(current, cup_dict, max_value=9)
 
     while current.value != 1:
         current = current.next
@@ -236,12 +248,11 @@ def part1() -> None:
 
 def part2() -> None:
     """Solution for part 2"""
-    cups = make_circular_linked_list('583976241', million=True)
+    cups, cup_dict = make_circular_linked_list('583976241', million=True)
 
     current = cups
-    for index in range(10_000_000):
-        print(index)
-        current = crab_move(current, max_value=1_000_000)
+    for _ in range(10_000_000):
+        current = crab_move(current, cup_dict, max_value=1_000_000)
 
     while current.value != 1:
         current = current.next
