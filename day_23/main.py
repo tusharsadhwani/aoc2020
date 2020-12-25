@@ -95,6 +95,34 @@ be 67384529.
 
 Using your labeling, simulate 100 moves. What are the labels on the cups
 after cup 1?
+
+--- Part Two ---
+Due to what you can only assume is a mistranslation (you're not exactly
+fluent in Crab), you are quite surprised when the crab starts arranging
+many cups in a circle on your raft - one million (1000000) in total.
+
+Your labeling is still correct for the first few cups; after that, the
+remaining cups are just numbered in an increasing fashion starting from
+the number after the highest number in your list and proceeding one by
+one until one million is reached. (For example, if your labeling were
+54321, the cups would be numbered 5, 4, 3, 2, 1, and then start counting
+up from 6 until one million is reached.) In this way, every number from
+one through one million is used exactly once.
+
+After discovering where you made the mistake in translating Crab
+Numbers, you realize the small crab isn't going to do merely 100 moves;
+the crab is going to do ten million (10000000) moves!
+
+The crab is going to hide your stars - one each - under the two cups
+that will end up immediately clockwise of cup 1. You can have them if
+you predict what the labels on those cups will be when the crab is
+finished.
+
+In the above example (389125467), this would be 934001 and then 159792;
+multiplying these together produces 149245887792.
+
+Determine which two cups will end up immediately clockwise of cup 1.
+What do you get if you multiply their labels together?
 """
 from __future__ import annotations
 
@@ -122,18 +150,25 @@ class CircularList:
         print(node.value, end='->self' if arrows else '\n')
 
 
-def make_circular_linked_list(cups: str) -> CircularList:
+def make_circular_linked_list(cups: str, million: bool = False) -> CircularList:
     """Creates circular linked list out of cups string"""
     start = CircularList(int(cups[0]))
 
     node = start
+    index = 1
     for cup in cups[1:]:
         new_node = CircularList(int(cup))
         node.next = new_node
         node = new_node
+        index += 1
+
+    if million:
+        for i in range(index, 1_000_000):
+            new_node = CircularList(i+1)
+            node.next = new_node
+            node = new_node
 
     node.next = start
-
     return start
 
 
@@ -152,7 +187,8 @@ def pop3(current: CircularList) -> Tuple3[CircularList]:
 
 def push3(
         current: CircularList,
-        nodes: Tuple3[CircularList]
+        nodes: Tuple3[CircularList],
+        max_value: int
 ) -> None:
     """Pushes the three cups into appropriate index"""
     cup1, _, cup3 = nodes
@@ -160,30 +196,26 @@ def push3(
     start = current
 
     node = start
-    value = node.value - 1
-    max_value = value
-    while True:
-        if node.value > max_value:
-            max_value = node.value
+    value = node.value - 1 or max_value
+    node_values = [node.value for node in nodes]
+    while value in node_values:
+        value -= 1
+        if value <= 0:
+            value = max_value
 
+    while True:
         if node.value == value:
             cup3.next = node.next
             break
         node = node.next
 
-        # check if all values have been seen
-        if node == start:
-            value -= 1
-            if value <= 0:
-                value = max_value
-
     node.next = cup1
 
 
-def crab_move(current: CircularList) -> CircularList:
+def crab_move(current: CircularList, max_value: int) -> CircularList:
     """Simulates one move by the crab"""
     nodes = pop3(current)
-    push3(current, nodes)
+    push3(current, nodes, max_value)
     current = current.next
     return current
 
@@ -194,7 +226,7 @@ def part1() -> None:
 
     current = cups
     for _ in range(100):
-        current = crab_move(current)
+        current = crab_move(current, max_value=9)
 
     while current.value != 1:
         current = current.next
@@ -202,5 +234,21 @@ def part1() -> None:
     current.print(arrows=False, skip_first=True)
 
 
+def part2() -> None:
+    """Solution for part 2"""
+    cups = make_circular_linked_list('583976241', million=True)
+
+    current = cups
+    for index in range(10_000_000):
+        print(index)
+        current = crab_move(current, max_value=1_000_000)
+
+    while current.value != 1:
+        current = current.next
+
+    print(current.next.value * current.next.next.value)
+
+
 if __name__ == "__main__":
     part1()
+    part2()
